@@ -69,17 +69,7 @@ struct TodayView: View {
                 }
             }
             .listStyle(PlainListStyle())
-            .navigationTitle("今日")
-            .navigationBarItems(
-                trailing: Button(action: {
-                    refreshData()
-                }) {
-                    Image(systemName: "arrow.clockwise")
-                }
-            )
-            .onAppear {
-                refreshData()
-            }
+            
         }
     }
     
@@ -97,8 +87,7 @@ struct TodayView: View {
     }
     
     private func refreshData() {
-        // Reset items
-        scheduleItems = []
+
         
         // Get the day of week index (0 = Monday, 6 = Sunday in our system)
         let calendar = Calendar(identifier: .gregorian)
@@ -236,5 +225,16 @@ struct ScheduleItemRow: View {
         case .habit:
             return "repeat"
         }
+    }
+}
+
+
+
+
+// MARK: - Preview Provider
+
+struct TodayView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
     }
 }

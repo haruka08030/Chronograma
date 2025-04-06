@@ -17,17 +17,17 @@ struct ContentView: View {
                 .tag(0)
                 .tabItem {
                     Image(systemName: "calendar.day.timeline.left")
-                    Text("今日")
+                    Text("Today")
                 }
             
             CalendarView()
                 .tag(1)
                 .tabItem {
                     Image(systemName: "calendar")
-                    Text("カレンダー")
+                    Text("Calendar")
                 }
             
-            TaskView()
+            TodoView()
                 .tag(2)
                 .tabItem {
                     Image(systemName: "checklist")
@@ -45,32 +45,13 @@ struct ContentView: View {
                 .tag(4)
                 .tabItem {
                     Image(systemName: "gear")
-                    Text("設定")
+                    Text("Setting")
                 }
         }
         .accentColor(.red)
     }
 }
 
-// MARK: - Placeholder Views
-struct TodayPlaceholderView: View {  // Renamed from TodayView
-    var body: some View {
-        NavigationView {
-            VStack {
-                Text("今日のスケジュール")
-                    .font(.largeTitle)
-                
-                Spacer()
-                
-                Text("本日の予定がここに表示されます")
-                    .foregroundColor(.gray)
-                
-                Spacer()
-            }
-            .navigationTitle("今日")
-        }
-    }
-}
 
 struct CalendarView: View {
     @State private var selectedDate = Date()
@@ -91,45 +72,11 @@ struct CalendarView: View {
                         .foregroundColor(.gray)
                 }
             }
-            .navigationTitle("カレンダー")
         }
     }
 }
 
-struct HabitView: View {
-    var days = ["月", "火", "水", "木", "金", "土", "日"]
-    
-    var body: some View {
-        NavigationView {
-            VStack {
-                HStack {
-                    ForEach(days, id: \.self) { day in
-                        Text(day)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .background(Color.gray.opacity(0.1))
-                    }
-                }
-                .padding(.horizontal)
-                
-                List {
-                    Text("習慣項目がここに表示されます")
-                        .foregroundColor(.gray)
-                }
-                
-                Button(action: {
-                    // Add new habit
-                }) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 44))
-                        .foregroundColor(.red)
-                }
-                .padding()
-            }
-            .navigationTitle("習慣")
-        }
-    }
-}
+
 
 struct SettingsView: View {
     var body: some View {
