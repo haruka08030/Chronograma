@@ -16,25 +16,26 @@ struct TodoItem: Identifiable, Codable {
     var isCompleted: Bool = false
     var priority: Priority = .medium
     var dueDate: Date?
+    var scheduledDate: Date?
     
     enum Priority: Int, Codable, CaseIterable {
-        case low = 0
+        case high = 0
         case medium = 1
-        case high = 2
+        case low = 2
         
         var color: Color {
             switch self {
-            case .low: return .green
-            case .medium: return .orange
             case .high: return .red
+            case .medium: return .orange
+            case .low: return .green
             }
         }
         
         var title: String {
             switch self {
-            case .low: return "Low"
-            case .medium: return "Medium"
             case .high: return "High"
+            case .medium: return "Medium"
+            case .low: return "Low"
             }
         }
     }
@@ -53,8 +54,8 @@ class TodoListViewModel: ObservableObject {
         loadTodos()
     }
     
-    func addTodo(title: String, priority: TodoItem.Priority, dueDate: Date?) {
-        let newTodo = TodoItem(title: title, priority: priority, dueDate: dueDate)
+    func addTodo(title: String, priority: TodoItem.Priority, dueDate: Date?, scheduledDate: Date?) {
+        let newTodo = TodoItem(title: title, priority: priority, dueDate: dueDate, scheduledDate: scheduledDate)
         todos.append(newTodo)
     }
     

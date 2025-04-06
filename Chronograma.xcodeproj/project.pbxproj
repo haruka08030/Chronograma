@@ -33,7 +33,6 @@
 		56B00CF62D9E6F170062D84F /* Exceptions for "Chronograma" folder in "Chronograma" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				"/Localized: LaunchScreen.storyboard",
 				Info.plist,
 			);
 			target = 56D948402D816B4400D68BFA /* Chronograma */;
