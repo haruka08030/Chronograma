@@ -22,12 +22,14 @@ struct TodoItem: Identifiable, Codable {
         case high = 0
         case medium = 1
         case low = 2
+        case no = 3
         
         var color: Color {
             switch self {
             case .high: return .red
             case .medium: return .orange
             case .low: return .green
+            case .no: return .gray
             }
         }
         
@@ -36,6 +38,7 @@ struct TodoItem: Identifiable, Codable {
             case .high: return "High"
             case .medium: return "Medium"
             case .low: return "Low"
+            case .no: return "No"
             }
         }
     }
@@ -48,6 +51,14 @@ class TodoListViewModel: ObservableObject {
         didSet {
             saveTodos()
         }
+    }
+    
+    enum SortType {
+        case priority
+        case dueDate
+        //case scheduledDate
+        //case title
+        //case creationDate
     }
     
     init() {
@@ -69,6 +80,27 @@ class TodoListViewModel: ObservableObject {
         todos.remove(atOffsets: indexSet)
     }
     
+    func filteredTodos(showCompleted: Bool = true, priorityFilter: TodoItem.Priority? = nil) -> [TodoItem] {
+        return todos.filter { todo in
+            (showCompleted || !todo.isCompleted) &&
+            (priorityFilter == nil || todo.priority == priorityFilter)
+        }
+    }
+
+    func sortedTodos(by sortType: SortType) -> [TodoItem] {
+        switch sortType {
+        case .priority:
+            return todos.sorted { $0.priority.rawValue < $1.priority.rawValue }
+        case .dueDate:
+            return todos.sorted {
+                if let date1 = $0.dueDate, let date2 = $1.dueDate {
+                    return date1 < date2
+                }
+                return $0.dueDate != nil && $1.dueDate == nil
+            }
+        }
+    }
+    
     // Persistence
     private func saveTodos() {
         if let encodedData = try? JSONEncoder().encode(todos) {
@@ -82,4 +114,5 @@ class TodoListViewModel: ObservableObject {
             todos = decodedTodos
         }
     }
+    
 }
