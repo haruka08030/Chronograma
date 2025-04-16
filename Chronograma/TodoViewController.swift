@@ -1,5 +1,5 @@
 //
-//  TaskViewController.swift
+//  TodoViewController.swift
 //  Chronograma
 //
 //  Created by Haruka Sugiyama on 2025/4/2.
@@ -66,12 +66,11 @@ struct TodoView: View {
                 }
             }
             .sheet (isPresented: $showingAddTodoView) {
-                AddTodoView { title, priority, dueDate, scheduledDate in
+                AddTodoView(onSave: { title, priority, dueDate, scheduledDate in
                     viewModel.addTodo(title: title, priority: priority, dueDate: dueDate, scheduledDate: scheduledDate)
                     showingAddTodoView = false
-                }
-                
-                .presentationDetents([.fraction(0.2)]) // 画面の20%
+                })
+                .presentationDetents([.fraction(0.25)])
             }
         }
         
@@ -138,14 +137,12 @@ struct TodoItemRow: View {
 // MARK: - Add Todo View
 
 struct AddTodoView: View {
-    @StateObject private var viewModel = TodoListViewModel()
     @State private var title = ""
-    @State private var priority: TodoItem.Priority = .medium
+    @State private var priority: TodoItem.Priority = .no
     
     @State private var dueDate = Date()
     @State private var scheduledDate = Date()
     @State private var scheduledEndDate = Date().addingTimeInterval(3600) // Default 1 hour later
-
     
     @State private var showingPriorityPicker = false
     @State private var showingDateSelectPicker = false
@@ -169,9 +166,9 @@ struct AddTodoView: View {
                 .background(Color(.secondarySystemBackground))
                 .cornerRadius(8)
                 .padding(.horizontal)
-                // FocusState を TextField に適用
+            // FocusState を TextField に適用
                 .focused($titleFieldIsFocused)
-                // onAppear で TextField にフォーカスを当てる
+            // onAppear で TextField にフォーカスを当てる
                 .onAppear {
                     DispatchQueue.main.async {
                         titleFieldIsFocused = true
@@ -188,39 +185,25 @@ struct AddTodoView: View {
                                 priority = priorityOption
                             }) {
                                 HStack {
-                                    Image(systemName: "flag.fill")
-                                        .foregroundColor(priorityOption.color)
-                                    
                                     Text(priorityOption.title)
-                                    
-                                    Spacer()
-                                    
-                                    if priority == priorityOption {
-                                        Image(systemName: "checkmark")
-                                            .foregroundColor(.blue)
-                                    }
+                                    Image(systemName: "flag")
+                                        .foregroundColor(priorityOption.color)
                                 }
                                 .padding(.vertical, 8)
                                 .padding(.horizontal)
                                 .background(priority == priorityOption ? Color.gray.opacity(0.1) : Color.clear)
                                 .cornerRadius(8)
                             }
-                            .buttonStyle(PlainButtonStyle())
                         }
                     }
                 } label: {
-                    Label {
-                        Text(priority.title)
-                            .font(.subheadline)
-                        } icon: {
-                            Circle()
-                                .fill(priority.color)
-                                .frame(width: 16, height: 16)
-                    }
-                    .padding(8)
-                    .background(Color(.tertiarySystemBackground))
-                    .cornerRadius(8)
+                    Image(systemName: "flag")
+                        .foregroundColor(priority.color)
+                        .padding(8)
+                        .background(Color(.tertiarySystemBackground))
+                        .cornerRadius(8)
                 }
+                
                 
                 // DateSelect button
                 Button(action: {
@@ -229,16 +212,11 @@ struct AddTodoView: View {
                         showingPriorityPicker = false
                     }
                 }) {
-                    HStack {
-                        Image(systemName: hasDueDate ? "calendar.badge.clock" : "calendar")
-                            .foregroundColor(hasDueDate ? .blue : .gray)
-                        
-                        Text("Date")
-                            .font(.subheadline)
-                    }
-                    .padding(8)
-                    .background(Color(.tertiarySystemBackground))
-                    .cornerRadius(8)
+                    Image(systemName: hasDueDate ? "calendar.badge.clock" : "calendar")
+                        .foregroundColor(hasDueDate ? .black : .gray)
+                        .padding(8)
+                        .background(Color(.tertiarySystemBackground))
+                        .cornerRadius(8)
                 }
                 
                 
@@ -253,6 +231,7 @@ struct AddTodoView: View {
                             hasDueDate ? dueDate : nil,
                             hasScheduledDate ? scheduledDate : nil
                         )
+                        presentationMode.wrappedValue.dismiss() // Dismiss after saving
                     }
                 }) {
                     Image(systemName: "arrow.up.circle.fill")
@@ -292,7 +271,6 @@ struct AddTodoView: View {
                             .background(priority == priorityOption ? Color.gray.opacity(0.1) : Color.clear)
                             .cornerRadius(8)
                         }
-                        .buttonStyle(PlainButtonStyle())
                     }
                 }
                 .padding()
@@ -306,7 +284,6 @@ struct AddTodoView: View {
         .padding(.top, 16)
         .sheet(isPresented: $showingDateSelectPicker) {
             DateSelectView(
-                viewModel: viewModel,
                 hasDueDate: $hasDueDate,
                 hasScheduledDate: $hasScheduledDate,
                 dueDate: $dueDate,
@@ -317,9 +294,9 @@ struct AddTodoView: View {
     }
 }
 
-//MARK: -
+// MARK: - Date Select View
+
 struct DateSelectView: View {
-    @ObservedObject var viewModel: TodoListViewModel
     @Binding var hasDueDate: Bool
     @Binding var hasScheduledDate: Bool
     @Binding var dueDate: Date
@@ -327,15 +304,40 @@ struct DateSelectView: View {
     @Binding var scheduledEndDate: Date
     @State private var selectedDate = Date()
     @State private var selectedTab = 0 // 0 for Due Date, 1 for Scheduled Date
+    @State private var showingInlineTimePicker = false
     
     @Environment(\.presentationMode) var presentationMode
     
+    private var formattedDueTime: String {
+        if hasDueDate {
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            return formatter.string(from: dueDate)
+        } else {
+            return "None"
+        }
+    }
+    
     var body: some View {
         VStack {
-            // Tab selection
-            Picker("Date Type", selection: $selectedTab) {
+            HStack {
+                Button("Cancel") {
+                    presentationMode.wrappedValue.dismiss()
+                }
+                .foregroundColor(.blue)
+                
+                Spacer()
+                
+                Button("Done") {
+                    presentationMode.wrappedValue.dismiss()
+                }
+                .foregroundColor(.blue)
+            }
+            .padding()
+            
+            Picker("Select Date Type", selection: $selectedTab) {
                 Text("Due Date").tag(0)
-                Text("Schedule").tag(1)
+                Text("Scheduled Date").tag(1)
             }
             .pickerStyle(SegmentedPickerStyle())
             .padding(.horizontal)
@@ -343,102 +345,107 @@ struct DateSelectView: View {
             if selectedTab == 0 {
                 // Due Date Tab
                 VStack {
-                    Toggle("Set due date", isOn: $hasDueDate)
-                        .padding(.horizontal)
+                    DatePicker(
+                        "Due date",
+                        selection: $dueDate,
+                        displayedComponents: [.date]
+                    )
+                    .datePickerStyle(.graphical)
+                    .padding()
                     
-                    if hasDueDate {
-                        DatePicker("Due date", selection: $dueDate, displayedComponents: [.date])
-                            .datePickerStyle(GraphicalDatePickerStyle())
-                            .padding()
-                        
-                        // Time picker
-                        DatePicker("Time", selection: $dueDate, displayedComponents: [.hourAndMinute])
-                            .datePickerStyle(WheelDatePickerStyle())
-                            .padding()
-                            .labelsHidden()
-                        
-                        // Reminder option
-                        HStack {
-                            Image(systemName: "bell")
-                            Text("Reminder")
-                            Spacer()
-                            Text("None")
+                    Divider()
+                    
+                    // Time option
+                    HStack {
+                        Image(systemName: "clock")
+                        Text("Time")
+                        Spacer()
+                        Text(formattedDueTime)
+                        if hasDueDate {
+                            Button(action: {
+                                withAnimation {
+                                    showingInlineTimePicker = false
+                                    hasDueDate = false // Due Date自体をクリア
+                                }
+                            }) {
+                                Image(systemName: "xmark")
+                                    .foregroundColor(.gray)
+                            }
+                        } else {
                             Image(systemName: "chevron.right")
                                 .foregroundColor(.gray)
                         }
-                        .padding()
-                        .background(Color(.secondarySystemBackground))
-                        .cornerRadius(8)
-                        .padding(.horizontal)
                     }
+        
+                .padding()
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(8)
+                .padding(.horizontal)
+                .onTapGesture {
+                                withAnimation {
+                            showingInlineTimePicker.toggle()
+                        }
+                        print("Time tapped")
+                    }
+                    
+                    // インライン時間ピッカー
+                    if showingInlineTimePicker {
+                        DatePicker(
+                            "Due Time",
+                            selection: $dueDate,
+                            displayedComponents: [.hourAndMinute]
+                        )
+                        .datePickerStyle(.wheel)
+                        .labelsHidden()
+                        .padding(.horizontal)
+                        .onChange(of: dueDate) {
+                            hasDueDate = true
+                        }
+                    }
+                    
+                    // Reminder option
+                    HStack {
+                        Image(systemName: "bell")
+                        Text("Reminder")
+                        Spacer()
+                        Text("None")
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.gray)
+                    }
+                    .padding()
+                    .background(Color(.secondarySystemBackground))
+                    .cornerRadius(8)
+                    .padding(.horizontal)
+                    .onTapGesture {
+                        print("Reminder tapped")
+                    }
+                    Spacer()
                 }
             } else {
                 // Scheduled Date Tab
                 VStack {
-                    Toggle("Schedule this task", isOn: $hasScheduledDate)
-                        .padding(.horizontal)
-                    
-                    if hasScheduledDate {
-                        DatePicker("Date", selection: $scheduledDate, displayedComponents: [.date])
-                            .datePickerStyle(GraphicalDatePickerStyle())
-                            .padding()
-                        
-                        HStack {
-                            // Start time
-                            VStack(alignment: .leading) {
-                                Text("Start")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                                DatePicker("", selection: $scheduledDate, displayedComponents: [.hourAndMinute])
-                                    .labelsHidden()
-                            }
-                            
-                            Spacer()
-                            
-                            // End time
-                            VStack(alignment: .leading) {
-                                Text("End")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                                DatePicker("", selection: $scheduledEndDate, displayedComponents: [.hourAndMinute])
-                                    .labelsHidden()
-                            }
-                        }
-                        .padding()
-                        
-                        // Repeat option
-                        HStack {
-                            Image(systemName: "repeat")
-                            Text("Repeat")
-                            Spacer()
-                            Text("None")
-                            Image(systemName: "chevron.right")
-                                .foregroundColor(.gray)
-                        }
-                        .padding()
-                        .background(Color(.secondarySystemBackground))
-                        .cornerRadius(8)
-                        .padding(.horizontal)
-                    }
-                }
-            }
-            
-            Spacer()
-            
-            // Done button
-            Button(action: {
-                presentationMode.wrappedValue.dismiss()
-                }) {
-                    Text("Done")
-          
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
+                    DatePicker(
+                        "Start Time",
+                        selection: $scheduledDate,
+                        displayedComponents: [.hourAndMinute]
+                    )
+                    .datePickerStyle(.wheel)
+                    .labelsHidden()
                     .padding()
-                    .background(Color.blue)
-                    .cornerRadius(10)
+                    
+                    DatePicker(
+                        "End Time",
+                        selection: $scheduledEndDate,
+                        displayedComponents: [.hourAndMinute]
+                    )
+                    .datePickerStyle(.wheel)
+                    .labelsHidden()
+                    .padding()
+                    Spacer()
+                }
+                .padding(.horizontal)
             }
-            .padding()
+            Spacer()
         }
     }
 }

@@ -14,21 +14,21 @@ struct TodoItem: Identifiable, Codable {
     var id = UUID()
     var title: String
     var isCompleted: Bool = false
-    var priority: Priority = .medium
+    var priority: Priority
     var dueDate: Date?
     var scheduledDate: Date?
     
     enum Priority: Int, Codable, CaseIterable {
-        case high = 0
-        case medium = 1
-        case low = 2
-        case no = 3
+        case no = 0
+        case low = 1
+        case medium = 2
+        case high = 3
         
         var color: Color {
             switch self {
             case .high: return .red
             case .medium: return .orange
-            case .low: return .green
+            case .low: return .blue
             case .no: return .gray
             }
         }
